@@ -195,10 +195,22 @@ public class NfcInFlutterPlugin implements MethodCallHandler,
         String action = intent.getAction();
         if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action) || NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)) {
             Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            String[] supportedTechList = tag.getTechList();
+            boolean supportsNDEF = false;
+            for (String tech : supportedTechList) {
+                if (tech.equals(Ndef.class.getName())) {
+                    supportsNDEF = true;
+                    break;
+                }
+            }
+            if (!supportsNDEF) {
+                Log.w(LOG_TAG, "tag does not support NDEF technology");
+                return true;
+            }
             Ndef ndef = Ndef.get(tag);
             if (ndef == null) {
-                Log.w(LOG_TAG, "tag does not support NDEF technology");
-                return false;
+                Log.w(LOG_TAG, "could not convert the tag to a NDEF tag");
+                return true;
             }
             handleNDEFTagFromIntent(ndef);
             return true;
@@ -218,6 +230,10 @@ public class NfcInFlutterPlugin implements MethodCallHandler,
                 Log.w(LOG_TAG, "read ndef message error: " + e.getMessage());
                 return;
             }
+        }
+        if (message == null) {
+            Log.w(LOG_TAG, "NDEF tag does not contain a message");
+            return;
         }
         eventSuccess(formatNDEFMessageToResult(ndef, message));
     }
