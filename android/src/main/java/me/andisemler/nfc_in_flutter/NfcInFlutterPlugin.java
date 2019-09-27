@@ -208,6 +208,17 @@ public class NfcInFlutterPlugin implements MethodCallHandler,
 
     private void handleNDEFTagFromIntent(Ndef ndef) {
         NdefMessage message = ndef.getCachedNdefMessage();
+        if (message == null) {
+            try {
+                message = ndef.getNdefMessage();
+            } catch (FormatException e) {
+                Log.w(LOG_TAG, "the NDEF message is formatted incorrectly");
+                return;
+            } catch (IOException e) {
+                Log.w(LOG_TAG, "read ndef message error: " + e.getMessage());
+                return;
+            }
+        }
         eventSuccess(formatNDEFMessageToResult(ndef, message));
     }
 
