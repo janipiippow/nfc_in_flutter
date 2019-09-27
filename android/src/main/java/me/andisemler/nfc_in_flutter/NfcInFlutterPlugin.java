@@ -193,23 +193,20 @@ public class NfcInFlutterPlugin implements MethodCallHandler,
     @Override
     public boolean onNewIntent(Intent intent) {
         String action = intent.getAction();
-        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action) || NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)) {
             Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-            handleNDEFTagFromIntent(tag);
+            Ndef ndef = Ndef.get(tag);
+            if (ndef == null) {
+                Log.w(LOG_TAG, "tag does not support NDEF technology");
+                return false;
+            }
+            handleNDEFTagFromIntent(ndef);
             return true;
-        } else if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)) {
-            Log.w(LOG_TAG, "received unsupported ACTION_TAG_DISCOVERED intent");
         }
         return false;
     }
 
-    private void handleNDEFTagFromIntent(Tag tag) {
-        Ndef ndef = Ndef.get(tag);
-        if (ndef == null) {
-            Log.w(LOG_TAG, "tag does not support NDEF technology");
-            return;
-        }
-
+    private void handleNDEFTagFromIntent(Ndef ndef) {
         NdefMessage message = ndef.getCachedNdefMessage();
         eventSuccess(formatNDEFMessageToResult(ndef, message));
     }
