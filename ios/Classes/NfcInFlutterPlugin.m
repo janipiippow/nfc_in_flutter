@@ -353,6 +353,7 @@
 }
 
 - (NFCNDEFMessage* _Nonnull)formatNDEFMessageWithDictionary:(NSDictionary* _Nonnull)dictionary API_AVAILABLE(ios(13.0)) {
+
     NSMutableArray<NFCNDEFPayload*>* ndefRecords = [[NSMutableArray alloc] init];
     
     NSDictionary *message = [dictionary valueForKey:@"message"];
@@ -382,6 +383,13 @@
         } else {
             typeData = [NSData data];
         }
+        
+        NSData* languageCodeData;
+        if (recordLanguageCode) {
+            languageCodeData = [recordLanguageCode dataUsingEncoding:NSUTF8StringEncoding];
+        } else {
+            languageCodeData = [NSData data];
+        }
         NFCTypeNameFormat tnfValue;
         
         if ([@"empty" isEqualToString:recordTNF]) {
@@ -391,12 +399,22 @@
             continue;
         } else if ([@"well_known" isEqualToString:recordTNF]) {
             if ([@"T" isEqualToString:recordType]) {
-                NSLocale* locale = [NSLocale localeWithLocaleIdentifier:recordLanguageCode];
-                NFCNDEFPayload* ndefRecord = [NFCNDEFPayload wellKnownTypeTextPayloadWithString:recordPayload locale:locale];
+
+                NSData* status = [@"0" dataUsingEncoding:NSUTF8StringEncoding]; //TODO: figure out better implementation
+                NSMutableData *completeData = [status mutableCopy];
+                [completeData appendData:languageCodeData];
+                [completeData appendData:payloadData];
+                // The following constructor does not seem to work
+                // NFCNDEFPayload* ndefRecord = [NFCNDEFPayload wellKnownTypeTextPayloadWithString:recordPayload locale:locale];
+                
+                NFCNDEFPayload* ndefRecord = [[NFCNDEFPayload alloc] initWithFormat:NFCTypeNameFormatNFCWellKnown type:typeData identifier:idData payload:completeData];
+ 
                 [ndefRecords addObject:ndefRecord];
                 continue;
             } else if ([@"U" isEqualToString:recordType]) {
-                NFCNDEFPayload* ndefRecord = [NFCNDEFPayload wellKnownTypeURIPayloadWithString:recordPayload];
+                NSString* payloadInUTF8 = [[NSString alloc] initWithData:payloadData encoding:NSUTF8StringEncoding];
+
+                NFCNDEFPayload* ndefRecord = [NFCNDEFPayload wellKnownTypeURIPayloadWithString:payloadInUTF8];
                 [ndefRecords addObject:ndefRecord];
                 continue;
             } else {
