@@ -46,7 +46,7 @@
         result([NSNumber numberWithBool:[wrapper isEnabled]]);
     } else if ([@"startNDEFReading" isEqualToString:call.method]) {
         NSDictionary* args = call.arguments;
-        [wrapper startReading:[args[@"scan_once"] boolValue]];
+        [wrapper startReading:[args[@"scan_once"] boolValue] alertMessage:args[@"alert_message"]];
         result(nil);
     } else if ([@"writeNDEF" isEqualToString:call.method]) {
         NSDictionary* args = call.arguments;
@@ -282,6 +282,8 @@
                 case 0x23:
                     url = @"urn:nfc:";
                     break;
+                default:
+                    url = @"";
             }
             // Remove the first byte from and add the URL prefix to the payload
             NSString* trimmedPayload = [[NSString alloc] initWithData:
@@ -390,7 +392,7 @@
         } else if ([@"well_known" isEqualToString:recordTNF]) {
             if ([@"T" isEqualToString:recordType]) {
                 NSLocale* locale = [NSLocale localeWithLocaleIdentifier:recordLanguageCode];
-                NFCNDEFPayload* ndefRecord = [NFCNDEFPayload wellKnowTypeTextPayloadWithString:recordPayload locale:locale];
+                NFCNDEFPayload* ndefRecord = [NFCNDEFPayload wellKnownTypeTextPayloadWithString:recordPayload locale:locale];
                 [ndefRecords addObject:ndefRecord];
                 continue;
             } else if ([@"U" isEqualToString:recordType]) {
@@ -433,9 +435,10 @@
     return self;
 }
     
-- (void)startReading:(BOOL)once {
+- (void)startReading:(BOOL)once alertMessage:(NSString* _Nonnull)alertMessage {
     if (session == nil) {
         session = [[NFCNDEFReaderSession alloc]initWithDelegate:self queue:dispatchQueue invalidateAfterFirstRead: once];
+        session.alertMessage = alertMessage;
     }
     [self->session beginSession];
 }
@@ -596,7 +599,7 @@
     // https://knowyourmeme.com/photos/1483348-bugs-bunnys-no
     return NO;
 }
-- (void)startReading:(BOOL)once {
+- (void)startReading:(BOOL)once alertMessage:(NSString* _Nonnull)alertMessage {
     return;
 }
 
